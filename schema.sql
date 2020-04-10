@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS Books;
+DROP TABLE IF EXISTS city;
 
 
 CREATE TABLE city (
@@ -6,6 +6,6 @@ CREATE TABLE city (
   search_querry VARCHAR(100) ,
   formatted_query VARCHAR(500) ,
   latitude NUMERIC(1000),
-  longitude NUMERIC(1000),
+  longitude NUMERIC(1000)
 
 )
