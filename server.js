@@ -22,8 +22,11 @@ app.get('/weather', weatherHandler);
 const trailHandler = require('./modules/trails');
 app.get('/trails', trailHandler);
 
-// const yelpHandler = require('./modules/yelp');
-// app.get('/location', yelpHandler);
+const yelpHandler = require('./modules/yelp');
+app.get('/yelp', yelpHandler);
+
+app.get('/movies',(request,response)=>
+response.send([]) );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
