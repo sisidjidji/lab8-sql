@@ -1,86 +1,76 @@
 'use strict';
 
-// Load Environment Variables from the .env file
+/////////////////////////////////////// Load Environment Variables from the .env file////////////////////////////////
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Application Dependencies
+///////////////////////////////// Application Dependencies///////////////////////////////////////////////////////
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 
+////////////////////////////////////////////////////////////client//////////////////////////////////////////////
 const PORT = process.env.PORT;
 const app = express();
 
 const pg = require('pg');
-
-if (!process.env.DATABASE_URL) {
+if (!process.env.HEROKU_POSTGRESQL_GREEN_URL) {
   throw 'Missing DATABASE_URL';
 }
 
-const city = new pg.City(process.env.DATABASE_URL);
-city.on('error', err => { throw err; });
+const client = new pg.Client(process.env.HEROKU_POSTGRESQL_GREEN_URL);
+client.on('error', err => { throw err; });
 app.use(cors()); // Middleware
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-app.get('/weather', weatherHandler) ;
+app.get('/location', locationHandler);
+app.get('/trail', trailHandler);
+app.get('/weather', weatherHandler);
 
-function weatherHandler(request, response) {
-  const weather=request.query.search_query;
-  const url = 'https://api.weatherbit.io/v2.0/current';
-  superagent.get(url)
-  .query({
-    key: process.env.WEATHER_KEY,
-    city:weather, // query
-    format: 'json'
+////////////////////////////////////////location/////////////////////////////////////////
+
+function  locationHandler(request,response){
+  const city = request.query.city;
+   getLocationFromCache(city)
+   .then(result => {
+    console.log('Location from cache', result.rows)
+    let { rowCount, rows } = result;
+    if (rowCount > 0) {
+      response.send(rows[0]);
+    }
+    else {
+      return getLocationFromAPI(city, response);
+    }
   })
-  .then(weatherResponse => {
-    let weatherData=weatherResponse.body;
-    let x= weatherData.data.map( dailyWeather=>{
-          return new Weather(dailyWeather);
-  })
-  response.send(x);
-})
-  .catch(err => {
-    console.log(err);
-    errorHandler(err, request, response);
-  })
- 
+   }
+
+
+function getLocationFromCache(city){
+
+   const SQL = `
+  SELECT *
+  FROM Locations
+  WHERE search_query = $1
+  LIMIT 1
+  `;
+  const parameters = [city];
+
+  return client.query(SQL, parameters);
+
+
+    
 }
-app.get('/location', (request, response) => {
-  const SQL = 'SELECT * FROM city';
-  city.query(SQL)
-    .then(results => {
-      console.log(results);
-      // let rowCount = results.rowCount;
-      // let rows = results.rows;
-      let { rowCount, rows } = results;
 
-      if (rowCount === 0) {
-        response.send({
-          error: true,
-          message: 'ERROR'
-        });
 
-      } else {
-        response.send({
-          error: false,
-          results: rows,
-        })
-      }
-    })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
-
-  let { search_query, formatted_query,latitude,longitude } = request.query; // destructuring
+function setLocationInCache(location) {
+  let { search_query, formatted_query, latitude, longitude } = request.query; // destructuring
   let SQL = `
     INSERT INTO city (search_query, formatted_query,latitude,longitude)
     VALUES($1, $2, $3,$4)
     RETURNING *
   `;
-  let SQLvalues = [search_query, formatted_query,latitude,longitude];
-  city.query(SQL, SQLvalues)
+  let SQLvalues = [search_query, formatted_query, latitude, longitude];
+  return client.query(SQL, SQLvalues)
     .then(results => {
       response.send(results);
     })
@@ -89,21 +79,16 @@ app.get('/location', (request, response) => {
       errorHandler(err, request, response);
     });
 
-
-else{
-
-app.get('/location', locationHandler);
 }
-})
-function locationHandler(request, response) {
-  // const geoData = require('./data/geo.json');
-  const city = request.query.city;
+
+function getLocationFromAPI(request, response) {
 
   const url = 'https://us1.locationiq.com/v1/search.php';
   superagent.get(url)
+
     .query({
       key: process.env.GEO_KEY,
-      q:city, // query
+      q: city, // query
       format: 'json'
     })
     .then(locationResponse => {
@@ -111,19 +96,22 @@ function locationHandler(request, response) {
       // console.log(geoData);
 
       const location = new Location(city, geoData);
-      setLocationInCache(city,location);
-      response.send(location);
+      setLocationInCache(location, response)
+        .then(() => {
+          console.log('Location has been cached', location);
+          response.send(location);
+        })
+        .catch(err => {
+          console.log(err);
+          errorHandler(err, request, response);
+        });
+
+
+      // response.send('oops');
     })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
 
-  // response.send('oops');
+
 }
-
-
-app.get('/trail', trailHandler);
 
 function trailHandler(request, response) {
 
@@ -149,8 +137,34 @@ function trailHandler(request, response) {
     });
 
 }
-}
 
+
+
+///////////////////////////////weather////////////////////////////////////////////////////////////////////
+function weatherHandler(request, response) {
+  const weather = request.query.search_query;
+  const url = 'https://api.weatherbit.io/v2.0/current';
+  superagent.get(url)
+    .query({
+      key: process.env.WEATHER_KEY,
+      city: weather, // query
+      format: 'json'
+    })
+    .then(weatherResponse => {
+      let weatherData = weatherResponse.body;
+      let x = weatherData.data.map(dailyWeather => {
+        return new Weather(dailyWeather);
+      })
+      response.send(x);
+    })
+    .catch(err => {
+      console.log(err);
+      errorHandler(err, request, response);
+    })
+
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////errors////////////////////////////////////////////////////////////////////
 // Has to happen after everything else
 app.use(notFoundHandler);
 // Has to happen after the error might have occurred
@@ -174,7 +188,7 @@ function notFoundHandler(request, response) {
     notFound: true,
   });
 }
-
+/////////////////////////////////////////////////////////////Constructor function///////////////////////////////////////////////////////////////
 function Location(city, geoData) {
   this.search_query = city; //
   this.formatted_query = geoData[0].display_name;
