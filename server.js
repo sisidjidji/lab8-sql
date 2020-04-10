@@ -25,7 +25,7 @@ app.use(cors()); // Middleware
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 app.get('/location', locationHandler);
-app.get('/trail', trailHandler);
+app.get('/trails', trailHandler);
 app.get('/weather', weatherHandler);
 
 ////////////////////////////////////////location/////////////////////////////////////////
@@ -114,7 +114,7 @@ function trailHandler(request, response) {
   let lat = request.query.latitude;
   let lon = request.query.longitude;
   const url = 'https://www.hikingproject.com/data/get-trails';
-  superagent.get(url)
+  return superagent.get(url)
     .query({
       key: process.env.TRAIL_KEY,
       lat: lat,
