@@ -1,5 +1,5 @@
 {
-  "name": "lab8-apis",
+  "name": "lab8-sql",
   "version": "1.0.0",
   "description": "# Project Name",
   "main": "server.js",
@@ -7,7 +7,7 @@
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "pg": "^8.0.0",
+    "pg": "^8.0.2",
     "superagent": "^5.2.2"
   },
   "devDependencies": {},
@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sisidjidji/lab7-apis.git"
+    "url": "git+https://github.com/sisidjidji/lab8-sql.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/sisidjidji/lab7-apis/issues"
+    "url": "https://github.com/sisidjidji/lab8-sql/issues"
   },
-  "homepage": "https://github.com/sisidjidji/lab7-apis#readme"
+  "homepage": "https://github.com/sisidjidji/lab8-sql#readme"
 }
