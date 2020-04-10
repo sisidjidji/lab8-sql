@@ -164,14 +164,15 @@ function weatherHandler(request, response) {
 
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 ///////////////////////////////////////errors////////////////////////////////////////////////////////////////////
 // Has to happen after everything else
 app.use(notFoundHandler);
 // Has to happen after the error might have occurred
 app.use(errorHandler); // Error Middleware
 
-// Make sure the server is listening for requests
-app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
 
 // Helper Functions
 
@@ -216,3 +217,12 @@ function Trail(trailData) {
   this.conditions = trailData.conditionDetails;
   this.condition_date = new Date(trailData.conditionDate).toDateString();
 }
+
+client.connect()
+  .then(() => {
+    console.log('Database connected.');
+    app.listen(PORT, () => console.log(`Listening on ${PORT}`));
+  })
+  .catch(error => {
+    throw `Something went wrong: ${error}`;
+  });
